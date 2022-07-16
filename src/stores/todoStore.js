@@ -1,19 +1,44 @@
 import { writable } from 'svelte/store';
+import { supabase } from '../supabase';
 
 export const todos = writable([]);
 
-export const addTodo = (text) => {
-    todos.update( (cur) => {
-        const newTodos = [...cur, { text, completed:false, id: Date.now() }]
-        return newTodos
-    })
+export const loadTodos = async () => {
+    const { data, error } = await supabase.from('todos').select();
+
+    if (error) {
+        return console.error(error)
+    }
+
+    todos.set(data)
 }
 
-export const deletTodo = (id) => {
+export const addTodo = async (text, user_id = "wew242srw") => {
+    const { data, error } = await supabase.from('todos').insert([{text, completed:false}]);
+
+    if (error) {
+        return console.error(error)
+    }
+
+    todos.update( (cur) => [...cur, data[0]]);
+}
+
+export const deletTodo = async (id) => {
+    const { error } = await supabase.from('todos').delete().match({id})
+
+    if (error) {
+        return console.error(error)
+    }
     todos.update(todos => todos.filter(todo => todo.id !== id));
 }
 
-export const toggleTodoCompleted = (id) => {
+export const toggleTodoCompleted = async (id, currentState) => {
+    const { error } = await supabase.from('todos').update({completed: !currentState}).match({id})
+
+    if (error) {
+        return console.error(error)
+    }
+
     todos.update(todos => {
         let index = -1;
         for (let i = 0; i < todos.length; i++) {
